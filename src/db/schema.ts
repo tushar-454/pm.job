@@ -15,6 +15,8 @@ export const reports = pgTable("reports", {
     matchedKeywords: text("matched_keywords").array(),
     experienceRecommendations: text("experience_recommendations"),
     formattingRecommendations: text("formatting_recommendations"),
+    jobLink: text("job_link"),
+    jobDescription: text("job_description"),
     pdfLink: text("pdf_link"),
     pdfContent: text("pdf_content"),
     createdAt: timestamp("created_at").defaultNow(),
