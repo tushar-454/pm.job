@@ -1,6 +1,6 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
-    "main": ".open-next/worker.js",
+    "main": "src/worker.ts",
     "name": "pmjob",
     "compatibility_date": "2026-05-10",
     "compatibility_flags": ["nodejs_compat"],
@@ -33,6 +33,13 @@
     "ai": {
         "binding": "AI",
     },
+    "workflows": [
+        {
+            "name": "pmjob-workflow",
+            "binding": "PMJOB_WORKFLOW",
+            "class_name": "PMJOBWorkflow",
+        },
+    ],
     "observability": {
         "enabled": true,
     },
