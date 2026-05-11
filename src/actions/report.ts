@@ -1,23 +1,54 @@
 "use server";
 
+import { getDB } from "@/db";
+import { reports } from "@/db/schema";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import slugify from "slugify";
 import { extractText, getDocumentProxy } from "unpdf";
 
 export async function generateReport(formData: FormData) {
-    const jobDescription = formData.get("jobDescription") as string;
-    const resumeFile = formData.get("resume") as File | null;
+    const jobDescriptionValue = formData.get("jobDescription");
+    const resumeFile = formData.get("resume");
 
-    if (!jobDescription || !resumeFile) {
+    if (
+        typeof jobDescriptionValue !== "string" ||
+        jobDescriptionValue.trim().length === 0 ||
+        !(resumeFile instanceof File)
+    ) {
         throw new Error("Job description and resume file are required");
     }
 
     try {
+        const jobDescription = jobDescriptionValue.trim();
         const { key } = await uploadResumeToCloudflareR2(resumeFile);
-        // parse resume pdf using unpdf
         const resumeText = await parseResumePdf(resumeFile);
+        const jobLink = isHttpUrl(jobDescription) ? jobDescription : "";
+        const jobDescriptionText = isHttpUrl(jobDescription)
+            ? await extractPageContent(jobDescription)
+            : jobDescription;
 
-        // if job is link parse the job description using puppeteer and extract the text content
+        const db = await getDB();
+
+        await db.insert(reports).values({
+            title: resumeFile.name,
+            matchPercentage: 85,
+            missingKeywords: ["keyword1", "keyword2"],
+            matchedKeywords: ["keyword3", "keyword4"],
+            experienceRecommendations:
+                "Consider adding more details about your experience.",
+            formattingRecommendations:
+                "Improve the formatting of your resume for better readability.",
+            jobLink: jobLink,
+            jobDescription: jobDescriptionText,
+            pdfLink: key,
+            pdfContent: resumeText,
+        });
+
+        return {
+            success: true,
+            message: "Report saved successfully.",
+        };
+
         // use worker ai to generate the report and store the report in the database
         // return the report to the user
     } catch (error) {
@@ -67,4 +98,56 @@ async function parseResumePdf(resumeFile: File) {
     const document = await getDocumentProxy(new Uint8Array(buffer));
     const { text } = await extractText(document, { mergePages: true });
     return text;
+}
+
+function isHttpUrl(value: string) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
+export async function extractPageContent(url: string): Promise<string> {
+    const res = await fetch(url, {
+        headers: {
+            "user-agent": "Mozilla/5.0 (compatible; CloudflareWorker/1.0)",
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error(`Fetch failed: ${res.status}`);
+    }
+
+    const html = await res.text();
+
+    const content = html
+        // remove scripts
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        // remove styles
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        // remove noscript
+        .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
+        // remove svg
+        .replace(/<svg[\s\S]*?<\/svg>/gi, "")
+        // convert breaks
+        .replace(/<\/(p|div|section|article|h1|h2|h3|li)>/gi, "\n")
+        // strip tags
+        .replace(/<[^>]+>/g, " ")
+        // decode basic entities
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        // cleanup
+        .replace(/\s+\n/g, "\n")
+        .replace(/\n\s+/g, "\n")
+        .replace(/\n{2,}/g, "\n\n")
+        .replace(/[ \t]{2,}/g, " ")
+        .trim();
+
+    return content;
 }

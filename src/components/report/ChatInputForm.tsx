@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, Plus } from "lucide-react";
 // import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import FilePreview from "./FilePreview";
 
 export default function ChatInputForm() {
@@ -27,9 +28,22 @@ export default function ChatInputForm() {
 
         setIsLoading(true);
         try {
-            await generateReport(formData);
+            const res = await generateReport(formData);
+            if (res.success) {
+                toast.success(res.message);
+                setInput("");
+                setFile(null);
+                // router.refresh();
+            } else {
+                toast.error("Failed to generate report");
+            }
         } catch (error) {
-            console.error("Error submitting form:", error);
+            console.error("Error generating report:", error);
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error("An unknown error occurred");
+            }
         } finally {
             setIsLoading(false);
         }
