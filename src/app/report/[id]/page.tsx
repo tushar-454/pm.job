@@ -10,11 +10,12 @@ import {
 import { AlertCircle, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
-export default function ReportDetailsPage({
+export default async function ReportDetailsPage({
     params,
 }: {
-    params: { uuid: string };
+    params: Promise<{ id: string }>;
 }) {
+    const { id } = await params;
     // Dummy dynamic data
     const matchPercentage = 78;
 
@@ -37,7 +38,7 @@ export default function ReportDetailsPage({
                             Report for Senior Frontend Engineer
                         </h1>
                         <span className="text-sm text-muted-foreground">
-                            ID: {params.uuid}
+                            ID: {id}
                         </span>
                     </div>
                 </div>
