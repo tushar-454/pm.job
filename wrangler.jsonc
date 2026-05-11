@@ -17,6 +17,10 @@
     "images": {
         "binding": "IMAGES",
     },
+    "observability": {
+        "enabled": true,
+    },
+    "upload_source_maps": true,
     //  disable workers.dev subdomain
     "workers_dev": false,
 
