@@ -30,6 +30,9 @@
             "bucket_name": "pmjob-r2",
         },
     ],
+    "ai": {
+        "binding": "AI",
+    },
     "observability": {
         "enabled": true,
     },

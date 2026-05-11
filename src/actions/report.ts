@@ -27,17 +27,24 @@ export async function generateReport(formData: FormData) {
             ? await extractPageContent(jobDescription)
             : jobDescription;
 
+        const aiReport = await getAIReport(jobDescriptionText, resumeText);
+        const parseAIReport = JSON.parse(aiReport);
+
+        console.log("######################################################");
+        console.log("AI Report:", parseAIReport);
+        console.log("######################################################");
+
         const db = await getDB();
 
         await db.insert(reports).values({
-            title: resumeFile.name,
-            matchPercentage: 85,
-            missingKeywords: ["keyword1", "keyword2"],
-            matchedKeywords: ["keyword3", "keyword4"],
+            title: parseAIReport.title || resumeFile.name,
+            matchPercentage: parseAIReport.matchPercentage || 0,
+            missingKeywords: parseAIReport.missingKeywords || [],
+            matchedKeywords: parseAIReport.matchedKeywords || [],
             experienceRecommendations:
-                "Consider adding more details about your experience.",
+                parseAIReport.experienceRecommendations || "",
             formattingRecommendations:
-                "Improve the formatting of your resume for better readability.",
+                parseAIReport.formattingRecommendations || "",
             jobLink: jobLink,
             jobDescription: jobDescriptionText,
             pdfLink: key,
@@ -48,9 +55,6 @@ export async function generateReport(formData: FormData) {
             success: true,
             message: "Report saved successfully.",
         };
-
-        // use worker ai to generate the report and store the report in the database
-        // return the report to the user
     } catch (error) {
         console.error("Error generating report:", error);
         throw new Error("Failed to generate report");
@@ -150,4 +154,139 @@ export async function extractPageContent(url: string): Promise<string> {
         .trim();
 
     return content;
+}
+
+type LlamaOutput = Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Output;
+type LlamaResponseObject = Extract<LlamaOutput, { response: string }>;
+type LlamaAsyncResponse = Extract<LlamaOutput, { request_id?: string }>;
+
+function isLlamaResponseObject(
+    value: LlamaOutput,
+): value is LlamaResponseObject {
+    return typeof value === "object" && value !== null && "response" in value;
+}
+
+function isLlamaAsyncResponse(value: LlamaOutput): value is LlamaAsyncResponse {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "request_id" in value &&
+        !("response" in value)
+    );
+}
+
+function ensureJsonString(value: unknown) {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (value && typeof value === "object") {
+        return JSON.stringify(value);
+    }
+
+    throw new Error("AI response content is not serializable.");
+}
+
+export async function getAIReport(jobDescription: string, resumeText: string) {
+    const prompt = `You are an expert ATS resume reviewer. Analyze the resume against the job description and return a structured report.
+
+Return ONLY a JSON string (no markdown, no code fences, no extra text) that matches this schema:
+{
+    "title": string,
+    "matchPercentage": number,
+    "missingKeywords": string[],
+    "matchedKeywords": string[],
+    "experienceRecommendations": string,
+    "formattingRecommendations": string
+}
+
+Guidelines:
+- Output must be a single JSON object that can be parsed with JSON.parse and accessed with dot notation.
+- "title" should be a concise role name inferred from the job description.
+- "matchPercentage" should be an integer from 0 to 100.
+- "missingKeywords" should list skill or domain terms present in the JD but missing from the resume.
+- "matchedKeywords" should list skills that appear in both.
+- "experienceRecommendations" should be a clear paragraph with 2-4 actionable items. Write it as advice.
+- "formattingRecommendations" should be a clear paragraph focused on layout, clarity, or consistency.
+- Be specific and realistic. Do not invent credentials not found in the resume.
+
+Job Description:
+${jobDescription}
+
+Resume:
+${resumeText}
+`;
+
+    const { env } = await getCloudflareContext({ async: true });
+    const response: LlamaOutput = await env.AI.run(
+        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        {
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "Analyze resume. Return ONLY valid JSON. No markdown.",
+                },
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
+
+            response_format: {
+                type: "json_schema",
+                json_schema: {
+                    type: "object",
+                    properties: {
+                        title: {
+                            type: "string",
+                        },
+                        matchPercentage: {
+                            type: "number",
+                        },
+                        missingKeywords: {
+                            type: "array",
+                            items: {
+                                type: "string",
+                            },
+                        },
+                        matchedKeywords: {
+                            type: "array",
+                            items: {
+                                type: "string",
+                            },
+                        },
+                        experienceRecommendations: {
+                            type: "string",
+                        },
+                        formattingRecommendations: {
+                            type: "string",
+                        },
+                    },
+                    required: [
+                        "title",
+                        "matchPercentage",
+                        "missingKeywords",
+                        "matchedKeywords",
+                        "experienceRecommendations",
+                        "formattingRecommendations",
+                    ],
+                },
+            },
+        },
+    );
+
+    if (typeof response === "string") {
+        return ensureJsonString(response);
+    }
+
+    if (isLlamaAsyncResponse(response)) {
+        throw new Error("AI response is async; polling is not implemented.");
+    }
+
+    if (isLlamaResponseObject(response)) {
+        return ensureJsonString(response.response);
+    }
+
+    throw new Error("AI response format is unsupported.");
 }
