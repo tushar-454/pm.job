@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Sheet,
     SheetContent,
+    SheetFooter,
     SheetHeader,
     SheetTitle,
     SheetTrigger,
@@ -20,6 +21,16 @@ import {
 import Link from "next/link";
 
 export function SidebarSheet() {
+    const history = [
+        "Senior Frontend Eng @ Vercel",
+        "Product Manager - Stripe",
+        "Fullstack Dev - Google",
+        "React Native Contractor",
+        "Backend Eng - OpenAI",
+        "UX Designer position",
+        "Growth Marketer - Notion",
+    ];
+
     return (
         <Sheet>
             <SheetTrigger asChild>
@@ -56,16 +67,7 @@ export function SidebarSheet() {
                     </h2>
                     <ScrollArea className="flex-1 -mx-2 px-2">
                         <div className="space-y-1">
-                            {/* Dummy history items */}
-                            {[
-                                "Senior Frontend Eng @ Vercel",
-                                "Product Manager - Stripe",
-                                "Fullstack Dev - Google",
-                                "React Native Contractor",
-                                "Backend Eng - OpenAI",
-                                "UX Designer position",
-                                "Growth Marketer - Notion",
-                            ].map((job, i) => (
+                            {history.map((job, i) => (
                                 <Link
                                     key={i}
                                     href={`/report/mock-uuid-${i}`}
@@ -79,22 +81,24 @@ export function SidebarSheet() {
                     </ScrollArea>
                 </div>
 
-                <div className="p-4 border-t mt-auto shrink-0 space-y-1">
-                    <Link
-                        href="#"
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                    >
-                        <Settings className="h-4 w-4 shrink-0" />
-                        Settings
-                    </Link>
-                    <Link
-                        href="#"
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                    >
-                        <HelpCircle className="h-4 w-4 shrink-0" />
-                        Help & Support
-                    </Link>
-                </div>
+                <SheetFooter>
+                    <div className="p-4 border-t mt-auto shrink-0 space-y-1">
+                        <Link
+                            href="#"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                        >
+                            <Settings className="h-4 w-4 shrink-0" />
+                            Settings
+                        </Link>
+                        <Link
+                            href="#"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                        >
+                            <HelpCircle className="h-4 w-4 shrink-0" />
+                            Help & Support
+                        </Link>
+                    </div>
+                </SheetFooter>
             </SheetContent>
         </Sheet>
     );
