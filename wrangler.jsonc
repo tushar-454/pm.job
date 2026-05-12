@@ -50,6 +50,13 @@
             },
         ],
     },
+    "workflows": [
+        {
+            "name": "pmjob-workflow",
+            "binding": "PMJOB_WORKFLOW",
+            "class_name": "PMJobWorkflow",
+        },
+    ],
     "observability": {
         "enabled": true,
     },

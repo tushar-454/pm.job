@@ -1,5 +1,6 @@
 import worker from "../.open-next/worker.js";
 import { queue } from "./queue/report.js";
+export { PMJobWorkflow } from "./workflow/report";
 
 export {
     BucketCachePurge,
