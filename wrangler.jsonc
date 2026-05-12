@@ -1,6 +1,7 @@
 {
     "$schema": "node_modules/wrangler/config-schema.json",
-    "main": ".open-next/worker.js",
+    "main": "./src/custom-worker.ts",
+    // "main": ".open-next/worker.js",
     "name": "pmjob",
     "compatibility_date": "2026-05-10",
     "compatibility_flags": ["nodejs_compat"],
@@ -32,6 +33,22 @@
     ],
     "ai": {
         "binding": "AI",
+    },
+    "queues": {
+        "producers": [
+            {
+                "queue": "pmjob-queue",
+                "binding": "PMJOB_QUEUE",
+            },
+        ],
+        "consumers": [
+            {
+                "queue": "pmjob-queue",
+                "max_batch_size": 1,
+                "max_batch_timeout": 0,
+                "dead_letter_queue": "my-queue-dlq",
+            },
+        ],
     },
     "observability": {
         "enabled": true,
