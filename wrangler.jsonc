@@ -22,7 +22,7 @@
         {
             "binding": "PMJOB_HYPERDRIVE",
             "id": "394caa89858644eb85f41bf2f15800e5",
-            "localConnectionString": "postgresql://neondb_owner:npg_c0fp9HzDSFGn@ep-snowy-tree-ao4yp5bg-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+            "localConnectionString": "postgresql://postgres.jriwvcqycplyhnhnluzj:XYGXAuZcaf3xMFI0@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres",
         },
     ],
     "r2_buckets": [
@@ -33,6 +33,7 @@
     ],
     "ai": {
         "binding": "AI",
+        "remote": true,
     },
     "queues": {
         "producers": [
