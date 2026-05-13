@@ -1,4 +1,4 @@
-import { reports } from "@/db/schema";
+import { reportStatusLogs, reports } from "@/db/schema";
 import {
     WorkflowEntrypoint,
     WorkflowEvent,
@@ -27,18 +27,49 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
             throw new NonRetryableError("Invalid workflow payload");
         }
 
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "Resolving job description",
+        );
         const jobDescription = await step.do(
             "resolve job description",
             async () => resolveJobDescription(message),
         );
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "Job description resolved",
+        );
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "Extracting resume text",
+        );
         const resumeText = await step.do("extract resume text", async () =>
             readPdfTextFromR2(this.env.PMJOB_R2, message.pdfLink),
+        );
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "Resume text extracted",
+        );
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "Generating AI report",
         );
         const aiReport = await step.do(
             "generate ai report",
             { retries: { limit: 3, delay: "5 seconds", backoff: "linear" } },
             async () => generateAiReport(this.env, jobDescription, resumeText),
         );
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "AI analysis completed",
+        );
+        await appendReportStatusLog(this.env, message.id, "Saving report");
 
         await step.do("update report", async () =>
             updateReport(this.env, message.id, {
@@ -48,6 +79,8 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
                 pdfContent: resumeText,
             }),
         );
+
+        await appendReportStatusLog(this.env, message.id, "Report ready");
 
         return { id: message.id };
     }
@@ -389,5 +422,26 @@ async function updateReport(
             .where(eq(reports.id, id));
     } finally {
         await client.end({ timeout: 5 });
+    }
+}
+
+async function appendReportStatusLog(
+    env: CloudflareEnv,
+    id: number,
+    status: string,
+) {
+    try {
+        const client = postgres(env.PMJOB_HYPERDRIVE.connectionString);
+        try {
+            const db = drizzle(client);
+            await db.insert(reportStatusLogs).values({
+                reportId: id,
+                message: status,
+            });
+        } finally {
+            await client.end({ timeout: 5 });
+        }
+    } catch (error) {
+        console.warn("Failed to append report status log", error);
     }
 }

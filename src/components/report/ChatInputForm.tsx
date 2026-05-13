@@ -1,6 +1,6 @@
 "use client";
 
-import { generateReport } from "@/actions/report";
+import { checkReportStatus, generateReport } from "@/actions/report";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, Plus } from "lucide-react";
@@ -14,6 +14,7 @@ export default function ChatInputForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const lastStatusLogIdRef = useRef(0);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -30,12 +31,76 @@ export default function ChatInputForm() {
         try {
             const res = await generateReport(formData);
             if (res.success) {
-                toast.success(res.message);
-                setInput("");
-                setFile(null);
-                router.push(`/report/${res.id}`);
+                toast.success(res.message, {
+                    position: "bottom-center",
+                    id: "report-status",
+                });
+                lastStatusLogIdRef.current = 0;
+
+                // Poll for report readiness and surface workflow progress.
+                const maxAttempts = 60; // 2 minutes max (60 * 2 seconds)
+                let attempts = 0;
+                const reportId = res.id;
+
+                const pollReport = async () => {
+                    if (!reportId) {
+                        setIsLoading(false);
+                        toast.error("Failed to get report ID");
+                        return;
+                    }
+
+                    while (attempts < maxAttempts) {
+                        try {
+                            const statusRes = await checkReportStatus(
+                                reportId,
+                                lastStatusLogIdRef.current,
+                            );
+
+                            if (statusRes.success) {
+                                for (const statusLog of statusRes.statusLogs ??
+                                    []) {
+                                    lastStatusLogIdRef.current = statusLog.id;
+                                    toast(statusLog.message, {
+                                        position: "bottom-center",
+                                        id: "report-status",
+                                    });
+                                }
+                            }
+
+                            if (statusRes.success && statusRes.isReady) {
+                                setIsLoading(false);
+                                router.push(`/report/${reportId}`);
+                                return;
+                            }
+
+                            // Wait 2 seconds before next check
+                            await new Promise((resolve) =>
+                                setTimeout(resolve, 2000),
+                            );
+                            attempts++;
+                        } catch (error) {
+                            console.error(
+                                "Error checking report status:",
+                                error,
+                            );
+                            await new Promise((resolve) =>
+                                setTimeout(resolve, 2000),
+                            );
+                            attempts++;
+                        }
+                    }
+
+                    // Timeout reached
+                    setIsLoading(false);
+                    toast.error(
+                        "Report generation is taking longer than expected. Please check back shortly.",
+                    );
+                };
+
+                pollReport();
             } else {
                 toast.error(res.error);
+                setIsLoading(false);
             }
         } catch (error) {
             console.error("Error generating report:", error);
@@ -44,7 +109,6 @@ export default function ChatInputForm() {
             } else {
                 toast.error("An unknown error occurred");
             }
-        } finally {
             setIsLoading(false);
         }
     };

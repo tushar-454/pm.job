@@ -1,4 +1,5 @@
 import {
+    index,
     integer,
     pgTable,
     serial,
@@ -25,3 +26,20 @@ export const reports = pgTable("reports", {
     pdfContent: text("pdf_content"),
     createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const reportStatusLogs = pgTable(
+    "report_status_logs",
+    {
+        id: serial("id").primaryKey(),
+        reportId: integer("report_id")
+            .notNull()
+            .references(() => reports.id, { onDelete: "cascade" }),
+        message: text("message").notNull(),
+        createdAt: timestamp("created_at").defaultNow().notNull(),
+    },
+    (table) => ({
+        reportIdIdx: index("report_status_logs_report_id_idx").on(
+            table.reportId,
+        ),
+    }),
+);

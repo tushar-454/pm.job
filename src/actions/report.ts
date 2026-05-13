@@ -1,9 +1,10 @@
 "use server";
 
 import { getDB } from "@/db";
-import { reports } from "@/db/schema";
+import { reportStatusLogs, reports } from "@/db/schema";
 import { authFn } from "@/lib/auth";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { headers } from "next/headers";
 import slugify from "slugify";
 
@@ -53,6 +54,8 @@ export async function generateReport(formData: FormData) {
             })
             .returning({ id: reports.id });
 
+        await appendReportStatusLog(db, report[0].id, "Queued for processing");
+
         await env.PMJOB_QUEUE.send({
             id: report[0].id,
             jobLink: jobLink,
@@ -75,6 +78,81 @@ export async function generateReport(formData: FormData) {
             success: false,
             error: errorMessage,
         };
+    }
+}
+
+export async function checkReportStatus(reportId: number, afterLogId = 0) {
+    try {
+        const db = await getDB();
+        const reportResult = await db
+            .select({ matchPercentage: reports.matchPercentage })
+            .from(reports)
+            .where(eq(reports.id, reportId));
+
+        if (!reportResult[0]) {
+            return {
+                success: false,
+                error: "Report not found",
+            };
+        }
+
+        const statusLogs = await getStatusLogs(db, reportId, afterLogId);
+        const matchPercentage = reportResult[0].matchPercentage;
+        return {
+            success: true,
+            matchPercentage,
+            statusLogs,
+            isReady: matchPercentage !== null && matchPercentage !== undefined,
+        };
+    } catch (error) {
+        console.error("Error checking report status:", error);
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to check report status",
+        };
+    }
+}
+
+async function appendReportStatusLog(
+    db: Awaited<ReturnType<typeof getDB>>,
+    reportId: number,
+    message: string,
+) {
+    try {
+        await db.insert(reportStatusLogs).values({
+            reportId,
+            message,
+        });
+    } catch (error) {
+        console.warn("Failed to append report status log", error);
+    }
+}
+
+async function getStatusLogs(
+    db: Awaited<ReturnType<typeof getDB>>,
+    reportId: number,
+    afterLogId = 0,
+) {
+    try {
+        return await db
+            .select({
+                id: reportStatusLogs.id,
+                message: reportStatusLogs.message,
+            })
+            .from(reportStatusLogs)
+            .where(
+                and(
+                    eq(reportStatusLogs.reportId, reportId),
+                    gt(reportStatusLogs.id, afterLogId),
+                ),
+            )
+            .orderBy(asc(reportStatusLogs.id));
+    } catch (error) {
+        console.warn("Failed to read report status logs", error);
+        return [] as Array<{ id: number; message: string }>;
     }
 }
 
