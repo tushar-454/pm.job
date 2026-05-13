@@ -2,20 +2,36 @@
 
 import { getDB } from "@/db";
 import { reports } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { headers } from "next/headers";
 import slugify from "slugify";
 
 export async function generateReport(formData: FormData) {
     const jobDescriptionValue = formData.get("jobDescription");
     const resumeFile = formData.get("resume");
-    const userIdValue = formData.get("userId") || "1";
+
+    // Check if user is authenticated
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+        return {
+            success: false,
+            error: "You must be logged in to generate a report",
+        };
+    }
 
     if (
         typeof jobDescriptionValue !== "string" ||
         jobDescriptionValue.trim().length === 0 ||
         !(resumeFile instanceof File)
     ) {
-        throw new Error("Job description and resume file are required");
+        return {
+            success: false,
+            error: "Job description and resume file are required",
+        };
     }
 
     try {
@@ -34,7 +50,7 @@ export async function generateReport(formData: FormData) {
                 jobLink: jobLink,
                 jobDescription: jobDescriptionText,
                 pdfLink: key,
-                userId: Number(userIdValue),
+                userId: session.user.id,
             })
             .returning({ id: reports.id });
 
@@ -52,7 +68,14 @@ export async function generateReport(formData: FormData) {
         };
     } catch (error) {
         console.error("Error generating report:", error);
-        throw new Error("Failed to generate report");
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : "Failed to generate report";
+        return {
+            success: false,
+            error: errorMessage,
+        };
     }
 }
 

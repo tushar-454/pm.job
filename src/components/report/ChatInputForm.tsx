@@ -25,7 +25,6 @@ export default function ChatInputForm() {
         if (file) {
             formData.append("resume", file);
         }
-        formData.append("userId", "1");
 
         setIsLoading(true);
         try {
@@ -36,7 +35,7 @@ export default function ChatInputForm() {
                 setFile(null);
                 router.push(`/report/${res.id}`);
             } else {
-                toast.error("Failed to generate report");
+                toast.error(res.error);
             }
         } catch (error) {
             console.error("Error generating report:", error);

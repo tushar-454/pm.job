@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/card";
 import { getDB } from "@/db";
 import { reports } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { and, eq } from "drizzle-orm";
 import { AlertCircle, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -25,7 +27,16 @@ export default async function ReportDetailsPage({
         notFound();
     }
 
-    const userId = 1;
+    // Get authenticated user session
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    const userId = session?.user?.id;
+    if (!userId) {
+        notFound();
+    }
+
     const db = await getDB();
     const result = await db
         .select()

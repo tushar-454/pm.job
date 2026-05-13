@@ -1,5 +1,5 @@
 "use client";
-import { signUp } from "@/actions/auth";
+import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -15,11 +15,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function SignUpPage() {
+export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
-        name: "",
         email: "",
         password: "",
     });
@@ -35,18 +34,17 @@ export default function SignUpPage() {
 
         try {
             const formDataObj = new FormData();
-            formDataObj.append("name", formData.name);
             formDataObj.append("email", formData.email);
             formDataObj.append("password", formData.password);
 
-            const result = await signUp(formDataObj);
+            const result = await signIn(formDataObj);
 
             if (!result.success) {
                 toast.error(result.error);
                 return;
             }
 
-            toast.success("Account created successfully!");
+            toast.success("Logged in successfully!");
             router.push("/report");
         } catch (error) {
             const errorMessage =
@@ -63,9 +61,9 @@ export default function SignUpPage() {
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Create Account</CardTitle>
+                    <CardTitle>Sign In</CardTitle>
                     <CardDescription>
-                        Sign up to get started with PM.Job
+                        Sign in to your PM.Job account
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -73,24 +71,6 @@ export default function SignUpPage() {
                         onSubmit={handleSubmit}
                         className="space-y-4"
                     >
-                        <div>
-                            <label
-                                htmlFor="name"
-                                className="block text-sm font-medium mb-1"
-                            >
-                                Name
-                            </label>
-                            <Input
-                                id="name"
-                                name="name"
-                                type="text"
-                                placeholder="John Doe"
-                                value={formData.name}
-                                onChange={handleChange}
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
                         <div>
                             <label
                                 htmlFor="email"
@@ -135,20 +115,20 @@ export default function SignUpPage() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
+                                    Signing in...
                                 </>
                             ) : (
-                                "Sign Up"
+                                "Sign In"
                             )}
                         </Button>
                     </form>
                     <p className="text-center text-sm text-muted-foreground mt-4">
-                        Already have an account?{" "}
+                        Don't have an account?{" "}
                         <Link
-                            href="/login"
+                            href="/signup"
                             className="text-primary hover:underline"
                         >
-                            Sign In
+                            Sign Up
                         </Link>
                     </p>
                 </CardContent>
