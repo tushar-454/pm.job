@@ -67,7 +67,11 @@ export default function ChatInputForm() {
                                         closeButton: false,
                                         position: "bottom-center",
                                         id: "report-status",
-                                        duration: statusLog.message.includes("Report ready") ? 3000 : Infinity,
+                                        duration:
+                                            statusLog.message ===
+                                            "🎉 Report ready"
+                                                ? 3000
+                                                : Infinity,
                                     });
                                 }
                             }
@@ -162,6 +166,7 @@ export default function ChatInputForm() {
                     {isLoading ? (
                         <Button
                             type="button"
+                            disabled
                             size="icon"
                             className="h-9 w-9 rounded-xl transition-all "
                         >

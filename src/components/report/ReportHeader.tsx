@@ -16,7 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ReportHeader() {
-    const { data: session } = authClient.useSession();
+    const { data: session, isPending, error } = authClient.useSession();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -30,63 +30,84 @@ export default function ReportHeader() {
             }
             toast.success("Logged out successfully");
             router.push("/login");
-        } catch (error) {
-            console.error("Error during logout:", error);
+        } catch (err) {
+            console.error("Error during logout:", err);
             toast.error("Failed to logout");
         } finally {
             setIsLoggingOut(false);
         }
     };
 
-    const getInitials = (name: string) => {
-        return name
+    const getInitials = (name: string) =>
+        name
             .split(" ")
             .map((n) => n[0])
             .join("")
             .toUpperCase();
+
+    const renderAuth = () => {
+        if (isPending) {
+            return (
+                <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+            );
+        }
+
+        if (error) {
+            return (
+                <Link href="/login">
+                    <Button
+                        size="sm"
+                        variant="destructive"
+                    >
+                        Session Error
+                    </Button>
+                </Link>
+            );
+        }
+
+        if (session?.user) {
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Avatar className="cursor-pointer h-10 w-10">
+                            <AvatarImage
+                                src={session.user.image ?? ""}
+                                alt={session.user.name}
+                            />
+                            <AvatarFallback>
+                                {getInitials(session.user.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <div className="px-2 py-1.5 text-sm font-medium">
+                            {session.user.name}
+                        </div>
+                        <DropdownMenuItem
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="text-red-600 focus:text-red-600"
+                        >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            {isLoggingOut ? "Logging out..." : "Logout"}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            );
+        }
+
+        return (
+            <Link href="/login">
+                <Button size="sm">Login</Button>
+            </Link>
+        );
     };
 
     return (
         <header className="border-b bg-background sticky top-0 z-10 w-full">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-xl tracking-tight">
-                        PM.Job
-                    </span>
-                </div>
-
-                {session?.user ? (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Avatar className="cursor-pointer h-10 w-10">
-                                <AvatarImage
-                                    src={session.user.image || ""}
-                                    alt={session.user.name}
-                                />
-                                <AvatarFallback>
-                                    {getInitials(session.user.name)}
-                                </AvatarFallback>
-                            </Avatar>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <div className="px-2 py-1.5 text-sm font-medium">
-                                {session.user.name}
-                            </div>
-                            <DropdownMenuItem
-                                onClick={handleLogout}
-                                disabled={isLoggingOut}
-                                className="text-red-600 focus:text-red-600"
-                            >
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Logout
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                ) : (
-                    <Link href="/login">
-                        <Button size="sm">Login</Button>
-                    </Link>
-                )}
+                <span className="font-bold text-xl tracking-tight">PM.Job</span>
+                {renderAuth()}
             </div>
         </header>
     );
