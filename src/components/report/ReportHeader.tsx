@@ -8,22 +8,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { authClient } from "@/lib/auth-client";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-type ReportHeaderProps = {
-    user?: {
-        id: string;
-        name: string;
-        email: string;
-        image?: string | null;
-    } | null;
-};
-
-export default function ReportHeader({ user }: ReportHeaderProps) {
+export default function ReportHeader() {
+    const { data: session } = authClient.useSession();
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -55,29 +48,29 @@ export default function ReportHeader({ user }: ReportHeaderProps) {
 
     return (
         <header className="border-b bg-background sticky top-0 z-10 w-full">
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-xl tracking-tight">
                         PM.Job
                     </span>
                 </div>
 
-                {user ? (
+                {session?.user ? (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Avatar className="cursor-pointer h-10 w-10">
                                 <AvatarImage
-                                    src={user.image || ""}
-                                    alt={user.name}
+                                    src={session.user.image || ""}
+                                    alt={session.user.name}
                                 />
                                 <AvatarFallback>
-                                    {getInitials(user.name)}
+                                    {getInitials(session.user.name)}
                                 </AvatarFallback>
                             </Avatar>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <div className="px-2 py-1.5 text-sm font-medium">
-                                {user.name}
+                                {session.user.name}
                             </div>
                             <DropdownMenuItem
                                 onClick={handleLogout}
