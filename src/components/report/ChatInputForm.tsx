@@ -3,7 +3,7 @@
 import { checkReportStatus, generateReport } from "@/actions/report";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowUp, Plus } from "lucide-react";
+import { ArrowUp, Loader, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -67,10 +67,7 @@ export default function ChatInputForm() {
                                         closeButton: false,
                                         position: "bottom-center",
                                         id: "report-status",
-                                        duration:
-                                            statusLog.message === "Report ready"
-                                                ? 3000
-                                                : Infinity,
+                                        duration: statusLog.message.includes("Report ready") ? 3000 : Infinity,
                                     });
                                 }
                             }
@@ -162,15 +159,26 @@ export default function ChatInputForm() {
                 />
                 {/* send button  */}
                 <div className="shrink-0 mb-1 lg:mb-1.5 mr-1">
-                    <Button
-                        type="submit"
-                        disabled={(!input.trim() && !file) || isLoading}
-                        size="icon"
-                        className="h-9 w-9 rounded-xl transition-all"
-                    >
-                        <ArrowUp className="h-4 w-4" />
-                        <span className="sr-only">Send</span>
-                    </Button>
+                    {isLoading ? (
+                        <Button
+                            type="button"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl transition-all "
+                        >
+                            <Loader className="h-4 w-4 animate-spin" />
+                            <span className="sr-only">Loader</span>
+                        </Button>
+                    ) : (
+                        <Button
+                            type="submit"
+                            disabled={(!input.trim() && !file) || isLoading}
+                            size="icon"
+                            className="h-9 w-9 rounded-xl transition-all"
+                        >
+                            <ArrowUp className="h-4 w-4" />
+                            <span className="sr-only">Send</span>
+                        </Button>
+                    )}
                 </div>
             </div>
         </form>

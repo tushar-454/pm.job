@@ -54,7 +54,11 @@ export async function generateReport(formData: FormData) {
             })
             .returning({ id: reports.id });
 
-        await appendReportStatusLog(db, report[0].id, "Queued for processing");
+        await appendReportStatusLog(
+            db,
+            report[0].id,
+            "⏰ Queued for processing",
+        );
 
         await env.PMJOB_QUEUE.send({
             id: report[0].id,

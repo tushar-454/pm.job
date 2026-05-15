@@ -26,7 +26,7 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
         await appendReportStatusLog(
             this.env,
             message.id,
-            "Resolving job description...",
+            "🔎 Resolving job description...",
         );
         const jobDescription = await step.do(
             "resolve job description",
@@ -35,12 +35,12 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
         await appendReportStatusLog(
             this.env,
             message.id,
-            "Job description resolved.",
+            "✅ Job description resolved.",
         );
         await appendReportStatusLog(
             this.env,
             message.id,
-            "Extracting resume text...",
+            "📄 Extracting resume text...",
         );
         const resumeText = await step.do("extract resume text", async () =>
             readPdfTextFromR2(this.env.PMJOB_R2, message.pdfLink),
@@ -48,12 +48,12 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
         await appendReportStatusLog(
             this.env,
             message.id,
-            "Resume text extracted.",
+            "✅ Resume text extracted.",
         );
         await appendReportStatusLog(
             this.env,
             message.id,
-            "Generating AI report...",
+            "🤖 Generating AI report...",
         );
         const aiReport = await step.do(
             "generate ai report",
@@ -63,9 +63,13 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
         await appendReportStatusLog(
             this.env,
             message.id,
-            "AI analysis completed.",
+            "✅ AI analysis completed.",
         );
-        await appendReportStatusLog(this.env, message.id, "Saving report...");
+        await appendReportStatusLog(
+            this.env,
+            message.id,
+            "💾 Saving report...",
+        );
 
         await step.do("update report", async () =>
             updateReport(this.env, message.id, {
@@ -76,7 +80,7 @@ export class PMJobWorkflow extends WorkflowEntrypoint<
             }),
         );
 
-        await appendReportStatusLog(this.env, message.id, "Report ready");
+        await appendReportStatusLog(this.env, message.id, "🎉 Report ready");
 
         return { id: message.id };
     }
